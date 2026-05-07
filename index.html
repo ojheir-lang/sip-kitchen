@@ -1,0 +1,1087 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sip — Kitchen Ordering System</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeede8;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --text: #1a1a1a;
+    --text2: #555;
+    --text3: #999;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1e;
+      --bg2: #2c2c2e;
+      --bg3: #3a3a3c;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --text: #f5f5f5;
+      --text2: #aaa;
+      --text3: #666;
+    }
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg2); color: var(--text); min-height: 100vh; }
+
+  /* ── LOGIN SCREEN ── */
+  .login-screen {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 24px;
+  }
+  .login-card {
+    background: var(--bg); border: 0.5px solid var(--border);
+    border-radius: 16px; padding: 36px 32px; width: 100%; max-width: 380px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.08);
+  }
+  .login-logo { font-size: 24px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .login-logo span { color: #25D366; }
+  .login-sub { font-size: 13px; color: var(--text3); margin-bottom: 28px; }
+  .login-card .field { margin-bottom: 16px; }
+  .login-card label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .login-card select, .login-card input[type=password] {
+    width: 100%; padding: 10px 14px; font-size: 14px;
+    border: 1px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg); color: var(--text); outline: none;
+    transition: border-color 0.15s;
+  }
+  .login-card select:focus, .login-card input[type=password]:focus { border-color: var(--text); }
+  .login-err { color: #A32D2D; font-size: 13px; text-align: center; margin-top: 10px; display: none; }
+
+  /* ── HEADER ── */
+  .header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 0 24px; position: sticky; top: 0; z-index: 50; }
+  .header-inner { max-width: 900px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; height: 56px; }
+  .logo { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .logo span { color: #25D366; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .header-user { font-size: 12px; color: var(--text3); }
+  .signout-btn { font-size: 12px; color: var(--text3); background: none; border: none; cursor: pointer; padding: 4px 8px; border-radius: var(--radius); }
+  .signout-btn:hover { background: var(--bg2); color: var(--text); }
+
+  /* ── TABS ── */
+  .tabs-bar { background: var(--bg); border-bottom: 0.5px solid var(--border); position: sticky; top: 56px; z-index: 40; }
+  .tabs-inner { max-width: 900px; margin: 0 auto; display: flex; overflow-x: auto; scrollbar-width: none; }
+  .tabs-inner::-webkit-scrollbar { display: none; }
+  .tab { padding: 12px 20px; border: none; border-bottom: 2px solid transparent; background: transparent; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--text3); white-space: nowrap; transition: all 0.15s; }
+  .tab.active { color: var(--text); border-bottom-color: var(--text); }
+
+  /* ── MAIN ── */
+  .main { max-width: 900px; margin: 0 auto; padding: 20px 16px; }
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ── CARDS ── */
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 12px; }
+
+  /* ── STATS ── */
+  .stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 20px; }
+  .stat { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px; text-align: center; }
+  .stat-n { font-size: 26px; font-weight: 600; }
+  .stat-l { font-size: 11px; color: var(--text3); margin-top: 3px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  /* ── TOOLBAR ── */
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px; }
+  .section-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); }
+
+  /* ── SEARCH ── */
+  .search-box { width: 100%; padding: 9px 14px; margin-bottom: 12px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; }
+  .search-box:focus { outline: none; border-color: var(--text); }
+
+  /* ── FILTER PILLS ── */
+  .filter-row { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .fpill { padding: 5px 14px; border: 0.5px solid var(--border); border-radius: 999px; font-size: 12px; background: transparent; cursor: pointer; color: var(--text2); transition: all 0.12s; }
+  .fpill.active { background: var(--text); color: var(--bg); border-color: transparent; }
+
+  /* ── SELECTED BAR ── */
+  .selected-bar { display: none; background: var(--bg2); border-radius: var(--radius); padding: 9px 14px; margin-bottom: 12px; font-size: 13px; color: var(--text2); align-items: center; justify-content: space-between; }
+  .selected-bar.show { display: flex; }
+
+  /* ── ITEM LIST ── */
+  .item-list-wrap { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 4px 20px; max-height: 55vh; overflow-y: auto; }
+  .item-row { padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .item-row:last-child { border-bottom: none; }
+  .item-top { display: flex; align-items: center; gap: 10px; }
+  .item-name { flex: 1; font-size: 14px; }
+  .qty-combo { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+  .qty-select { appearance: none; -webkit-appearance: none; padding: 7px 28px 7px 12px; font-size: 13px; font-weight: 500; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text2); cursor: pointer; width: 130px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23888' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; transition: border-color 0.15s, background-color 0.15s, color 0.15s; }
+  .qty-select:focus { outline: none; border-color: var(--text); }
+  .qty-select.has-value { border-color: #3B6D11; background-color: #EAF3DE; color: #3B6D11; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%233B6D11' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); }
+  .qty-custom { width: 84px; padding: 7px 10px; font-size: 13px; font-weight: 500; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); display: none; text-align: center; }
+  .qty-custom.show { display: block; }
+  .qty-custom:focus { outline: none; border-color: var(--text); }
+  .remove-item-btn { width: 28px; height: 28px; border-radius: 50%; border: 0.5px solid #F7C1C1; background: #FCEBEB; color: #A32D2D; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; line-height: 1; }
+  .remove-item-btn:hover { background: #F7C1C1; }
+  .remark-wrap { margin-top: 6px; display: flex; align-items: center; gap: 6px; }
+  .remark-icon { font-size: 13px; color: var(--text3); flex-shrink: 0; }
+  .remark-icon.active { color: #D85A30; }
+  .remark-input { flex: 1; font-size: 12px; padding: 4px 8px; border: 1px solid transparent; border-radius: var(--radius); background: transparent; color: var(--text2); font-style: italic; transition: border-color 0.15s, background 0.15s; }
+  .remark-input::placeholder { color: var(--text3); }
+  .remark-input:focus { outline: none; border-color: var(--border2); background: var(--bg2); }
+  .remark-input.has-remark { border-color: #F0997B; background: #FAECE7; color: #993C1D; }
+  .divider-cat { font-size: 11px; color: var(--text3); padding: 10px 0 4px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-top: 0.5px solid var(--border); margin-top: 4px; }
+  .divider-cat:first-child { border-top: none; margin-top: 0; }
+
+  /* ── BUTTONS ── */
+  .btn { padding: 8px 16px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: transparent; cursor: pointer; font-size: 13px; color: var(--text); transition: all 0.12s; white-space: nowrap; }
+  .btn:hover { background: var(--bg2); }
+  .btn:active { transform: scale(0.98); }
+  .btn-primary { background: var(--text); color: var(--bg); border-color: transparent; }
+  .btn-primary:hover { opacity: 0.85; background: var(--text); }
+  .btn-green { background: #EAF3DE; color: #3B6D11; border-color: #C0DD97; }
+  .btn-green:hover { background: #C0DD97; }
+  .btn-wa { background: #25D366; color: #fff; border-color: transparent; font-weight: 500; }
+  .btn-wa:hover { background: #1aad54; }
+  .btn-red { background: #FCEBEB; color: #A32D2D; border-color: #F7C1C1; }
+  .btn-red:hover { background: #F7C1C1; }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+  /* ── BADGES ── */
+  .badge { display: inline-block; font-size: 11px; padding: 3px 10px; border-radius: var(--radius); font-weight: 500; }
+  .b-pending { background: #FAEEDA; color: #854F0B; }
+  .b-review { background: #E6F1FB; color: #185FA5; }
+  .b-approved { background: #EAF3DE; color: #3B6D11; }
+  .b-sent { background: #E1F5EE; color: #0F6E56; }
+  .cat-pill { display: inline-block; font-size: 10px; padding: 2px 8px; border-radius: 999px; background: var(--bg2); color: var(--text2); white-space: nowrap; }
+  .remark-tag { display: inline-block; font-size: 11px; font-style: italic; color: #993C1D; background: #FAECE7; padding: 2px 8px; border-radius: var(--radius); margin-left: 4px; }
+  .count-badge { font-size: 11px; background: var(--bg2); color: var(--text3); padding: 2px 8px; border-radius: 999px; margin-left: 6px; }
+
+  /* ── ORDER CARDS ── */
+  .order-card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 12px; }
+  .order-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+  .order-meta { font-size: 12px; color: var(--text3); margin-top: 4px; }
+  .order-preview { font-size: 12px; color: var(--text2); line-height: 1.75; margin-top: 8px; }
+  .act-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  /* ── SUPPLIER ROWS ── */
+  .sup-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+  .sup-row:last-child { border-bottom: none; }
+  .avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--bg2); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 13px; flex-shrink: 0; color: var(--text2); }
+
+  /* ── MODAL ── */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.45); z-index: 200; align-items: center; justify-content: center; padding: 16px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--bg); border-radius: var(--radius-lg); padding: 24px; width: 100%; max-width: 480px; max-height: 85vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .field input, .field select, .field textarea { width: 100%; padding: 8px 12px; font-size: 14px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); }
+  .field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--text); }
+
+  /* ── WHATSAPP BUBBLE ── */
+  .wa-bubble { background: #ECF5E8; border-radius: 10px; padding: 14px 16px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: #1a1a1a; margin-top: 8px; max-height: 260px; overflow-y: auto; }
+
+  /* ── ADD ITEM INLINE FORM ── */
+  .add-form { background: var(--bg2); border-radius: var(--radius); padding: 12px 16px; margin-bottom: 12px; display: none; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .add-form.show { display: flex; }
+  .add-form input, .add-form select { padding: 7px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); flex: 1; min-width: 140px; }
+  .add-form input:focus, .add-form select:focus { outline: none; border-color: var(--text); }
+
+  /* ── EMPTY STATE ── */
+  .empty { text-align: center; padding: 40px 20px; color: var(--text3); font-size: 13px; }
+
+  /* ── TOAST ── */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--text); color: var(--bg); padding: 10px 20px; border-radius: 999px; font-size: 13px; z-index: 999; transition: transform 0.25s; white-space: nowrap; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* ── SYNCING INDICATOR ── */
+  .sync-dot { width: 7px; height: 7px; border-radius: 50%; background: #25D366; display: inline-block; margin-left: 6px; opacity: 0; transition: opacity 0.3s; }
+  .sync-dot.active { opacity: 1; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: repeat(2,1fr); }
+    .act-row { gap: 4px; }
+    .modal { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ LOGIN SCREEN ═══════════════ -->
+<div id="login-screen" class="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Sip <span>Kitchen</span></div>
+    <p class="login-sub">Daily ordering system</p>
+    <div class="field">
+      <label>Your name</label>
+      <select id="login-user">
+        <option value="">Select your name…</option>
+        <option value="Mohamed Shabarak">Mohamed Shabarak</option>
+        <option value="Omar Jheir">Omar Jheir</option>
+        <option value="Joelle Bassil">Joelle Bassil</option>
+        <option value="Dory Sleiman">Dory Sleiman</option>
+        <option value="Chef">Chef</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:11px;font-size:14px" onclick="doLogin()">Sign in →</button>
+    <div id="login-err" class="login-err">Incorrect password. Please try again.</div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN APP ═══════════════ -->
+<div id="app" style="display:none">
+
+  <div class="header">
+    <div class="header-inner">
+      <div class="logo">Sip <span>Kitchen</span> <span class="sync-dot" id="sync-dot"></span></div>
+      <div class="header-right">
+        <span class="header-user" id="current-user-name"></span>
+        <button class="signout-btn" onclick="signOut()">Sign out</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs-bar">
+    <div class="tabs-inner">
+      <button class="tab active" onclick="switchTab('kitchen',this)">🍳 Kitchen</button>
+      <button class="tab" onclick="switchTab('procurement',this)">📋 Procurement</button>
+      <button class="tab" onclick="switchTab('approval',this)">✅ Approval</button>
+      <button class="tab" onclick="switchTab('catalog',this)">📦 Catalog</button>
+      <button class="tab" onclick="switchTab('suppliers',this)">👥 Suppliers</button>
+    </div>
+  </div>
+
+  <div class="main">
+
+    <!-- KITCHEN VIEW -->
+    <div class="view active" id="view-kitchen">
+      <div id="k-stats" class="stats"></div>
+      <div class="toolbar">
+        <p class="section-label">Daily order · <span id="k-date"></span></p>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="clearAll()">Clear all</button>
+          <button class="btn btn-sm" onclick="toggleAddForm()">+ Add item</button>
+          <button class="btn btn-primary btn-sm" onclick="submitOrder()">Submit order →</button>
+        </div>
+      </div>
+      <div class="add-form" id="add-item-form">
+        <input id="new-item-name" type="text" placeholder="Item name…" onkeydown="if(event.key==='Enter')addItemInline()">
+        <select id="new-item-cat">
+          <option>Fruits &amp; Veggies</option>
+          <option>Dairy &amp; Meat &amp; Frozen</option>
+          <option>Canned &amp; Dry</option>
+        </select>
+        <button class="btn btn-primary btn-sm" onclick="addItemInline()">Add</button>
+        <button class="btn btn-sm" onclick="toggleAddForm()">Cancel</button>
+      </div>
+      <input class="search-box" type="text" placeholder="Search items…" oninput="setSearch(this.value)">
+      <div class="filter-row" id="cat-filters"></div>
+      <div class="selected-bar" id="selected-bar">
+        <span id="selected-count"></span>
+        <button class="btn btn-primary btn-sm" onclick="submitOrder()">Submit order →</button>
+      </div>
+      <div class="item-list-wrap">
+        <div id="item-list"></div>
+      </div>
+    </div>
+
+    <!-- PROCUREMENT VIEW -->
+    <div class="view" id="view-procurement">
+      <p class="section-label" style="margin-bottom:14px">Orders awaiting review</p>
+      <div id="proc-list"></div>
+    </div>
+
+    <!-- APPROVAL VIEW -->
+    <div class="view" id="view-approval">
+      <p class="section-label" style="margin-bottom:14px">Orders for approval</p>
+      <div id="appr-list"></div>
+    </div>
+
+    <!-- CATALOG VIEW -->
+    <div class="view" id="view-catalog">
+      <div class="toolbar">
+        <p class="section-label">Item catalog <span class="count-badge" id="cat-count"></span></p>
+        <button class="btn btn-sm" onclick="openModal('m-item')">+ Add item</button>
+      </div>
+      <input class="search-box" type="text" placeholder="Search catalog…" oninput="setCatalogSearch(this.value)">
+      <div class="item-list-wrap" style="max-height:65vh" id="catalog-list"></div>
+    </div>
+
+    <!-- SUPPLIERS VIEW -->
+    <div class="view" id="view-suppliers">
+      <div class="toolbar">
+        <p class="section-label">Supplier directory</p>
+        <button class="btn btn-sm" onclick="openModal('m-sup')">+ Add supplier</button>
+      </div>
+      <div class="card" id="sup-list"></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- Modal: review -->
+  <div class="modal-bg" id="m-review">
+    <div class="modal">
+      <h3 id="m-review-title">Review order</h3>
+      <div id="m-review-body"></div>
+      <div class="modal-actions">
+        <button class="btn btn-red btn-sm" onclick="rejectFromModal('m-review')">Reject</button>
+        <button class="btn btn-sm" onclick="closeModal('m-review')">Close</button>
+        <button class="btn btn-green" onclick="sendForApproval()">Send for approval ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: approve -->
+  <div class="modal-bg" id="m-approve">
+    <div class="modal">
+      <h3 id="m-approve-title">Approve order</h3>
+      <div id="m-approve-body"></div>
+      <div class="modal-actions">
+        <button class="btn btn-red btn-sm" onclick="rejectFromModal('m-approve')">Reject</button>
+        <button class="btn btn-sm" onclick="closeModal('m-approve')">Close</button>
+        <button class="btn btn-green" onclick="approveOrder()">Approve ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: WhatsApp -->
+  <div class="modal-bg" id="m-send">
+    <div class="modal">
+      <h3>Send to supplier via WhatsApp</h3>
+      <div class="field">
+        <label>Supplier</label>
+        <select id="wa-sup" onchange="updateWA()"></select>
+      </div>
+      <label style="font-size:13px;color:var(--text2)">Message preview</label>
+      <div class="wa-bubble" id="wa-msg"></div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('m-send')">Cancel</button>
+        <button class="btn btn-wa" onclick="doSendWA()">Open WhatsApp Web ↗</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: add item (catalog) -->
+  <div class="modal-bg" id="m-item">
+    <div class="modal">
+      <h3>Add item to catalog</h3>
+      <div class="field"><label>Item name</label><input id="i-name" type="text" placeholder="e.g. Truffle oil"></div>
+      <div class="field"><label>Category</label>
+        <select id="i-cat">
+          <option>Fruits &amp; Veggies</option>
+          <option>Dairy &amp; Meat &amp; Frozen</option>
+          <option>Canned &amp; Dry</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('m-item')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveItem()">Add item</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: add supplier -->
+  <div class="modal-bg" id="m-sup">
+    <div class="modal">
+      <h3>Add supplier</h3>
+      <div class="field"><label>Business name</label><input id="s-name" type="text" placeholder="e.g. Al Rabih Butchers"></div>
+      <div class="field"><label>WhatsApp number (country code, no +)</label><input id="s-phone" type="text" placeholder="e.g. 9613456789"></div>
+      <div class="field"><label>Category supplied</label>
+        <select id="s-cat">
+          <option>Fruits &amp; Veggies</option>
+          <option>Dairy &amp; Meat &amp; Frozen</option>
+          <option>Canned &amp; Dry</option>
+          <option>General</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn" onclick="closeModal('m-sup')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSup()">Save supplier</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+</div><!-- /app -->
+
+<!-- Firebase SDK (v9 compat) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+// ═══════════════════════════════════════════════════
+//  FIREBASE INIT
+// ═══════════════════════════════════════════════════
+const firebaseConfig = {
+  apiKey: "AIzaSyAGETTntGuWBdY5M7Q1jhfS-xQxTnQF0Rk",
+  authDomain: "sip-kitchen-e0938.firebaseapp.com",
+  projectId: "sip-kitchen-e0938",
+  storageBucket: "sip-kitchen-e0938.firebasestorage.app",
+  messagingSenderId: "388002206325",
+  appId: "1:388002206325:web:a9086446c23e197148de3c"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+// ═══════════════════════════════════════════════════
+//  SIMPLE AUTH (hardcoded — no Firebase Auth required)
+// ═══════════════════════════════════════════════════
+const USERS = {
+  'Mohamed Shabarak': 'Mohamed@2026',
+  'Omar Jheir':       'Omar@2026',
+  'Joelle Bassil':    'Joelle@2026',
+  'Dory Sleiman':     'Dory@2026',
+  'Chef':             'Chef@2026'
+};
+
+let currentUser = sessionStorage.getItem('sip_user');
+if (currentUser) showApp();
+
+function doLogin() {
+  const user = document.getElementById('login-user').value;
+  const pass = document.getElementById('login-pass').value;
+  const err  = document.getElementById('login-err');
+  err.style.display = 'none';
+  if (!user) { err.textContent = 'Please select your name.'; err.style.display = 'block'; return; }
+  if (USERS[user] !== pass) { err.style.display = 'block'; return; }
+  sessionStorage.setItem('sip_user', user);
+  currentUser = user;
+  showApp();
+}
+
+function showApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('current-user-name').textContent = currentUser;
+  init();
+}
+
+function signOut() {
+  sessionStorage.removeItem('sip_user');
+  if (unsubOrders) unsubOrders();
+  if (unsubSups)   unsubSups();
+  orders = []; suppliers = DEFAULT_SUPPLIERS.slice();
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('login-user').value = '';
+}
+
+// ═══════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════
+const CATS = ['Fruits & Veggies','Dairy & Meat & Frozen','Canned & Dry'];
+
+const DEFAULT_SUPPLIERS = [
+  {name:'Veggies supplier',      phone:'9611000001', cat:'Fruits & Veggies'},
+  {name:'Meat & dairy supplier', phone:'9611000002', cat:'Dairy & Meat & Frozen'},
+  {name:'Dry goods supplier',    phone:'9611000003', cat:'Canned & Dry'},
+];
+
+let items = [
+  {id:1,name:'Sweet potato orange',cat:'Fruits & Veggies'},{id:2,name:'Baby spinach',cat:'Fruits & Veggies'},
+  {id:3,name:'Kale',cat:'Fruits & Veggies'},{id:4,name:'Mint',cat:'Fruits & Veggies'},
+  {id:5,name:'Coriander',cat:'Fruits & Veggies'},{id:6,name:'Parsley',cat:'Fruits & Veggies'},
+  {id:7,name:'Zaatar (fattoush)',cat:'Fruits & Veggies'},{id:8,name:'Carrots',cat:'Fruits & Veggies'},
+  {id:9,name:'Beetroot',cat:'Fruits & Veggies'},{id:10,name:'Radish',cat:'Fruits & Veggies'},
+  {id:11,name:'Cabbage white',cat:'Fruits & Veggies'},{id:12,name:'Cabbage purple',cat:'Fruits & Veggies'},
+  {id:13,name:'Orange',cat:'Fruits & Veggies'},{id:14,name:'Lemon',cat:'Fruits & Veggies'},
+  {id:15,name:'Lime',cat:'Fruits & Veggies'},{id:16,name:'Mesclun',cat:'Fruits & Veggies'},
+  {id:17,name:'Blueberries',cat:'Fruits & Veggies'},{id:18,name:'Passion fruit',cat:'Fruits & Veggies'},
+  {id:19,name:'Strawberry',cat:'Fruits & Veggies'},{id:20,name:'Apples red',cat:'Fruits & Veggies'},
+  {id:21,name:'Mango',cat:'Fruits & Veggies'},{id:22,name:'Broccoli',cat:'Fruits & Veggies'},
+  {id:23,name:'Sucrine',cat:'Fruits & Veggies'},{id:24,name:'Cucumber',cat:'Fruits & Veggies'},
+  {id:25,name:'Basil',cat:'Fruits & Veggies'},{id:26,name:'Lemongrass',cat:'Fruits & Veggies'},
+  {id:27,name:'Ginger',cat:'Fruits & Veggies'},{id:28,name:'Garlic',cat:'Fruits & Veggies'},
+  {id:29,name:'Onion',cat:'Fruits & Veggies'},{id:30,name:'Onion purple',cat:'Fruits & Veggies'},
+  {id:31,name:'French thyme',cat:'Fruits & Veggies'},{id:32,name:'Chives',cat:'Fruits & Veggies'},
+  {id:33,name:'Dill',cat:'Fruits & Veggies'},{id:34,name:'Potatoes',cat:'Fruits & Veggies'},
+  {id:35,name:'Eggs',cat:'Fruits & Veggies'},{id:36,name:'Olives black (pitted)',cat:'Fruits & Veggies'},
+  {id:37,name:'Olives green (pitted)',cat:'Fruits & Veggies'},{id:38,name:'Cauliflower',cat:'Fruits & Veggies'},
+  {id:39,name:'Arugula',cat:'Fruits & Veggies'},{id:40,name:'Lollo rosso',cat:'Fruits & Veggies'},
+  {id:41,name:'Lollo verde',cat:'Fruits & Veggies'},{id:42,name:'Avocado',cat:'Fruits & Veggies'},
+  {id:43,name:'Red bell peppers',cat:'Fruits & Veggies'},{id:44,name:'Green bell peppers',cat:'Fruits & Veggies'},
+  {id:45,name:'Aubergine',cat:'Fruits & Veggies'},{id:46,name:'Shallots',cat:'Fruits & Veggies'},
+  {id:47,name:'Cherry tomatoes red',cat:'Fruits & Veggies'},{id:48,name:'Cherry tomatoes black',cat:'Fruits & Veggies'},
+  {id:49,name:'Rosemary',cat:'Fruits & Veggies'},{id:50,name:'Banana',cat:'Fruits & Veggies'},
+  {id:51,name:'Pomegranate seeds',cat:'Fruits & Veggies'},{id:52,name:'Red chili',cat:'Fruits & Veggies'},
+  {id:53,name:'Green chili',cat:'Fruits & Veggies'},{id:54,name:'Mushroom Paris white',cat:'Fruits & Veggies'},
+  {id:55,name:'Oyster mushroom',cat:'Fruits & Veggies'},{id:56,name:'Baby potatoes',cat:'Fruits & Veggies'},
+  {id:57,name:'Zucchini',cat:'Fruits & Veggies'},{id:58,name:'Green onion',cat:'Fruits & Veggies'},
+  {id:59,name:'Daikon',cat:'Fruits & Veggies'},{id:60,name:'Green apples',cat:'Fruits & Veggies'},
+  {id:61,name:'Halloumi',cat:'Dairy & Meat & Frozen'},{id:62,name:'Feta',cat:'Dairy & Meat & Frozen'},
+  {id:63,name:'Greek yoghurt',cat:'Dairy & Meat & Frozen'},{id:64,name:'Edamame seeded',cat:'Dairy & Meat & Frozen'},
+  {id:65,name:'Roast beef Karim (cooked)',cat:'Dairy & Meat & Frozen'},{id:66,name:'Goat cheese',cat:'Dairy & Meat & Frozen'},
+  {id:67,name:'Sour cream',cat:'Dairy & Meat & Frozen'},{id:68,name:'Parmesan shredded',cat:'Dairy & Meat & Frozen'},
+  {id:69,name:'Labneh',cat:'Dairy & Meat & Frozen'},{id:70,name:'Turkey smoked',cat:'Dairy & Meat & Frozen'},
+  {id:71,name:'Comté slices',cat:'Dairy & Meat & Frozen'},{id:72,name:'Mozzarella shredded',cat:'Dairy & Meat & Frozen'},
+  {id:73,name:'Orange cheddar shredded',cat:'Dairy & Meat & Frozen'},{id:74,name:'Butter',cat:'Dairy & Meat & Frozen'},
+  {id:75,name:'Emmental',cat:'Dairy & Meat & Frozen'},{id:76,name:'Chicken breast',cat:'Dairy & Meat & Frozen'},
+  {id:77,name:'Halloumi (extra)',cat:'Dairy & Meat & Frozen'},{id:78,name:'Brisket Karim',cat:'Dairy & Meat & Frozen'},
+  {id:79,name:'Sushi grade salmon',cat:'Dairy & Meat & Frozen'},{id:80,name:'Smoked salmon',cat:'Dairy & Meat & Frozen'},
+  {id:81,name:'Arisheh',cat:'Dairy & Meat & Frozen'},{id:82,name:'Burger meat Karim',cat:'Dairy & Meat & Frozen'},
+  {id:83,name:'Milk full fat',cat:'Dairy & Meat & Frozen'},{id:84,name:'Cream cooking',cat:'Dairy & Meat & Frozen'},
+  {id:85,name:'Frozen spinach',cat:'Dairy & Meat & Frozen'},{id:86,name:'Sausages',cat:'Dairy & Meat & Frozen'},
+  {id:87,name:'Cheddar cheese slices',cat:'Dairy & Meat & Frozen'},
+  {id:88,name:'Buckwheat',cat:'Canned & Dry'},{id:89,name:'Hazelnut (ground)',cat:'Canned & Dry'},
+  {id:90,name:'Almond (sliced)',cat:'Canned & Dry'},{id:91,name:'Apple cider vinegar',cat:'Canned & Dry'},
+  {id:92,name:'Balsamic',cat:'Canned & Dry'},{id:93,name:'Balsamic glaze',cat:'Canned & Dry'},
+  {id:94,name:'White vinegar',cat:'Canned & Dry'},{id:95,name:'Olive oil',cat:'Canned & Dry'},
+  {id:96,name:'Whole hummus',cat:'Canned & Dry'},{id:97,name:'Pumpkin seeds',cat:'Canned & Dry'},
+  {id:98,name:'Sunflower seeds',cat:'Canned & Dry'},{id:99,name:'Roasted peanuts',cat:'Canned & Dry'},
+  {id:100,name:'Peanut butter smooth',cat:'Canned & Dry'},{id:101,name:'Almond butter',cat:'Canned & Dry'},
+  {id:102,name:'Sushi rice',cat:'Canned & Dry'},{id:103,name:'Black rice',cat:'Canned & Dry'},
+  {id:104,name:'Soy sauce light',cat:'Canned & Dry'},{id:105,name:'Mirin',cat:'Canned & Dry'},
+  {id:106,name:'Rice vinegar',cat:'Canned & Dry'},{id:107,name:'Fish sauce',cat:'Canned & Dry'},
+  {id:108,name:'Hoisin',cat:'Canned & Dry'},{id:109,name:'Chili oil crunchy',cat:'Canned & Dry'},
+  {id:110,name:'Coriander powder',cat:'Canned & Dry'},{id:111,name:'Cinnamon powder',cat:'Canned & Dry'},
+  {id:112,name:'Cumin powder',cat:'Canned & Dry'},{id:113,name:'Turmeric powder',cat:'Canned & Dry'},
+  {id:114,name:'Garlic powder',cat:'Canned & Dry'},{id:115,name:'Smoked paprika powder',cat:'Canned & Dry'},
+  {id:116,name:'Ginger powder',cat:'Canned & Dry'},{id:117,name:'Summac',cat:'Canned & Dry'},
+  {id:118,name:'Zaatar mix',cat:'Canned & Dry'},{id:119,name:'Black pepper whole',cat:'Canned & Dry'},
+  {id:120,name:'Salt',cat:'Canned & Dry'},{id:121,name:'Maldon salt',cat:'Canned & Dry'},
+  {id:122,name:'Mustard dijon',cat:'Canned & Dry'},{id:123,name:"Mustard à l'ancienne",cat:'Canned & Dry'},
+  {id:124,name:'Kewpie mayo',cat:'Canned & Dry'},{id:125,name:'Amerigo mayo',cat:'Canned & Dry'},
+  {id:126,name:'Tabasco',cat:'Canned & Dry'},{id:127,name:'Sriracha',cat:'Canned & Dry'},
+  {id:128,name:'Tahini',cat:'Canned & Dry'},{id:129,name:'Ginger pickles',cat:'Canned & Dry'},
+  {id:130,name:'Cashew',cat:'Canned & Dry'},{id:131,name:'Honey',cat:'Canned & Dry'},
+  {id:132,name:'Sesame seeds toasted',cat:'Canned & Dry'},{id:133,name:'Nigella seeds',cat:'Canned & Dry'},
+  {id:134,name:'Coconut milk',cat:'Canned & Dry'},{id:135,name:'Sesame oil',cat:'Canned & Dry'},
+  {id:136,name:'Sweet chili sauce',cat:'Canned & Dry'},{id:137,name:'Pistachio',cat:'Canned & Dry'},
+  {id:138,name:'Zereshk',cat:'Canned & Dry'},{id:139,name:'Miso',cat:'Canned & Dry'},
+  {id:140,name:'Dates medjool',cat:'Canned & Dry'},{id:141,name:'Freekeh',cat:'Canned & Dry'},
+  {id:142,name:'Dried figs',cat:'Canned & Dry'},{id:143,name:'Dried apricots',cat:'Canned & Dry'},
+  {id:144,name:'Dried cranberries',cat:'Canned & Dry'},{id:145,name:'Corn can',cat:'Canned & Dry'},
+  {id:146,name:'Quinoa white',cat:'Canned & Dry'},{id:147,name:'Quinoa mixed',cat:'Canned & Dry'},
+  {id:148,name:'Wasabi',cat:'Canned & Dry'},{id:149,name:'Ortiz tuna',cat:'Canned & Dry'},
+  {id:150,name:'Capers',cat:'Canned & Dry'},{id:151,name:'Orzo pasta',cat:'Canned & Dry'},
+  {id:152,name:'Pecans',cat:'Canned & Dry'},{id:153,name:'Nutmeg',cat:'Canned & Dry'},
+  {id:154,name:'Cinnamon sticks',cat:'Canned & Dry'},{id:155,name:'Sugar',cat:'Canned & Dry'},
+  {id:156,name:'Cornichons French',cat:'Canned & Dry'},{id:157,name:'Dill pickles',cat:'Canned & Dry'},
+  {id:158,name:'Dried raisins golden',cat:'Canned & Dry'},{id:159,name:'Black beans',cat:'Canned & Dry'},
+  {id:160,name:'Bay leaves',cat:'Canned & Dry'},{id:161,name:'Lumi black',cat:'Canned & Dry'},
+  {id:162,name:'Anis flower',cat:'Canned & Dry'},{id:163,name:'Furikake nori',cat:'Canned & Dry'},
+  {id:164,name:'Blackberry jam',cat:'Canned & Dry'},{id:165,name:'Cumin seeds',cat:'Canned & Dry'},
+  {id:166,name:'Cocoa nibs',cat:'Canned & Dry'},{id:167,name:'Chocolate dark 70% Lindt',cat:'Canned & Dry'},
+  {id:168,name:'Panko',cat:'Canned & Dry'},{id:169,name:'Flour',cat:'Canned & Dry'},
+  {id:170,name:'Mutti diced tomato cans',cat:'Canned & Dry'},{id:171,name:'Tawous tomato paste',cat:'Canned & Dry'},
+  {id:172,name:'Pomi tomato passata',cat:'Canned & Dry'},{id:173,name:'Caserecci pasta',cat:'Canned & Dry'},
+  {id:174,name:'Yuzu',cat:'Canned & Dry'},{id:175,name:'White vinegar (bulk)',cat:'Canned & Dry'},
+  {id:176,name:'Mustard seeds',cat:'Canned & Dry'},{id:177,name:'Buffalo sauce',cat:'Canned & Dry'},
+  {id:178,name:'Frozen corn bag',cat:'Canned & Dry'},
+];
+
+let suppliers = DEFAULT_SUPPLIERS.slice();
+let orders = [];
+let qty={}, customQty={}, remarks={}, curFilter='all', searchQ='', catalogQ='', curOrderId=null, nextId=200, nextOrd=1;
+let unsubOrders, unsubSups;
+
+const ALL_QTY_OPTS_HTML = `
+  <option value="">Select qty…</option>
+  <optgroup label="── Weight ──">
+    <option>100g</option><option>150g</option><option>200g</option><option>250g</option>
+    <option>300g</option><option>400g</option><option>500g</option><option>750g</option>
+    <option>1kg</option><option>1.5kg</option><option>2kg</option><option>2.5kg</option>
+    <option>3kg</option><option>4kg</option><option>5kg</option><option>6kg</option>
+    <option>8kg</option><option>10kg</option><option>15kg</option><option>20kg</option>
+  </optgroup>
+  <optgroup label="── Volume ──">
+    <option>100ml</option><option>250ml</option><option>500ml</option><option>700ml</option>
+    <option>1L</option><option>1.5L</option><option>2L</option><option>3L</option>
+    <option>4L</option><option>5L</option><option>10L</option><option>20L</option>
+  </optgroup>
+  <optgroup label="── Pieces ──">
+    <option>1 piece</option><option>2 pieces</option><option>3 pieces</option>
+    <option>4 pieces</option><option>5 pieces</option><option>6 pieces</option>
+    <option>8 pieces</option><option>10 pieces</option>
+  </optgroup>
+  <optgroup label="── Boxes ──">
+    <option>1 box</option><option>2 boxes</option><option>3 boxes</option>
+    <option>4 boxes</option><option>5 boxes</option>
+  </optgroup>
+  <optgroup label="── Bundles ──">
+    <option>1 bundle</option><option>2 bundles</option><option>3 bundles</option>
+    <option>4 bundles</option><option>5 bundles</option>
+  </optgroup>
+  <optgroup label="── Cans ──">
+    <option>1 can</option><option>2 cans</option><option>3 cans</option>
+    <option>4 cans</option><option>5 cans</option><option>6 cans</option>
+  </optgroup>
+  <optgroup label="── Jars ──">
+    <option>1 jar</option><option>2 jars</option><option>3 jars</option><option>4 jars</option>
+  </optgroup>
+  <optgroup label="── Bottles ──">
+    <option>1 bottle</option><option>2 bottles</option><option>3 bottles</option>
+    <option>4 bottles</option><option>5 bottles</option>
+  </optgroup>
+  <optgroup label="── Tubes ──">
+    <option>1 tube</option><option>2 tubes</option><option>3 tubes</option>
+  </optgroup>
+  <optgroup label="── Sehara ──">
+    <option>1 sehara</option><option>2 sehara</option><option>3 sehara</option>
+  </optgroup>
+  <optgroup label="── Other ──">
+    <option value="custom">Other (type below)…</option>
+  </optgroup>
+`;
+
+// ═══════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════
+function fmtDate(d){ return d.toLocaleDateString('en-GB',{weekday:'long',day:'2-digit',month:'short',year:'numeric'}); }
+function fmtShort(d){ return d.toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}); }
+function newOid(){ return 'SIP-'+String(nextOrd++).padStart(3,'0'); }
+function getEffectiveQty(id){ return qty[id]==='custom'?(customQty[id]||''):qty[id]||''; }
+function getFireId(dispId){ const o=orders.find(x=>x.id===dispId); return o?o._fid:null; }
+
+function syncPulse(){
+  const d=document.getElementById('sync-dot');
+  if(!d) return;
+  d.classList.add('active');
+  setTimeout(()=>d.classList.remove('active'),1200);
+}
+
+// ═══════════════════════════════════════════════════
+//  FIRESTORE LISTENERS
+// ═══════════════════════════════════════════════════
+function loadFirestore(){
+  unsubOrders = db.collection('orders').orderBy('ts','desc').onSnapshot(snap=>{
+    orders = snap.docs.map(d=>({_fid:d.id,...d.data()}));
+    orders.forEach(o=>{
+      const num=parseInt((o.id||'SIP-0').replace('SIP-',''));
+      if(!isNaN(num)&&num>=nextOrd) nextOrd=num+1;
+    });
+    syncPulse();
+    renderStats();
+    renderProc();
+    renderAppr();
+  }, err=>{
+    console.error('Firestore orders error:',err);
+    if(err.code==='permission-denied') toast('⚠️ Firestore rules not set — go to Firebase Console → Firestore → Rules');
+  });
+
+  unsubSups = db.collection('suppliers').onSnapshot(snap=>{
+    if(snap.empty){
+      const batch=db.batch();
+      DEFAULT_SUPPLIERS.forEach(s=>batch.set(db.collection('suppliers').doc(),s));
+      batch.commit().catch(()=>{});
+    } else {
+      suppliers = snap.docs.map(d=>({_fid:d.id,...d.data()}));
+      renderSups();
+    }
+  }, err=>console.error('Firestore suppliers error:',err));
+}
+
+// ═══════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════
+function init(){
+  const now=new Date();
+  document.getElementById('k-date').textContent=fmtShort(now);
+  renderCatFilters();
+  renderItems();
+  renderStats();
+  renderCatalog();
+  renderSups();
+  loadFirestore();
+}
+
+// ═══════════════════════════════════════════════════
+//  TABS
+// ═══════════════════════════════════════════════════
+function switchTab(t,btn){
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('view-'+t).classList.add('active');
+  if(t==='procurement') renderProc();
+  if(t==='approval')    renderAppr();
+  if(t==='catalog')     renderCatalog();
+  if(t==='suppliers')   renderSups();
+  if(t==='kitchen'){    renderStats(); renderItems(); }
+}
+
+// ═══════════════════════════════════════════════════
+//  KITCHEN
+// ═══════════════════════════════════════════════════
+function renderCatFilters(){
+  document.getElementById('cat-filters').innerHTML=
+    ['all',...CATS].map(c=>`<button class="fpill${c===curFilter?' active':''}" onclick="setFilter('${c}',this)">${c==='all'?'All':c}</button>`).join('');
+}
+function setFilter(c,btn){ curFilter=c; document.querySelectorAll('.fpill').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); renderItems(); }
+function setSearch(v){ searchQ=v.toLowerCase(); renderItems(); }
+function setCatalogSearch(v){ catalogQ=v.toLowerCase(); renderCatalog(); }
+
+function renderItems(){
+  let list=items.filter(i=>(curFilter==='all'||i.cat===curFilter)&&(!searchQ||i.name.toLowerCase().includes(searchQ)));
+  if(!list.length){ document.getElementById('item-list').innerHTML='<div class="empty">No items found</div>'; return; }
+  let html='',lastCat='';
+  [...list].sort((a,b)=>CATS.indexOf(a.cat)-CATS.indexOf(b.cat)).forEach(i=>{
+    if(curFilter==='all'&&i.cat!==lastCat){ html+=`<div class="divider-cat">${i.cat}</div>`; lastCat=i.cat; }
+    const selVal=qty[i.id]||'';
+    const hasVal=selVal&&selVal!=='';
+    const showCustom=selVal==='custom';
+    const remVal=remarks[i.id]||'';
+    const hasRemark=remVal.trim().length>0;
+    html+=`<div class="item-row">
+      <div class="item-top">
+        <span class="item-name">${i.name}</span>
+        <div class="qty-combo">
+          <select id="sel-${i.id}" class="qty-select${hasVal?' has-value':''}" onchange="onSelectChange(${i.id},this.value)">
+            ${ALL_QTY_OPTS_HTML}
+          </select>
+          <input id="custom-${i.id}" class="qty-custom${showCustom?' show':''}" type="text"
+            placeholder="e.g. 2 trays" value="${customQty[i.id]||''}" oninput="onCustomChange(${i.id},this.value)">
+        </div>
+        <button class="remove-item-btn" onclick="removeItemFromList(${i.id})" title="Remove item">×</button>
+      </div>
+      <div class="remark-wrap">
+        <span id="rem-icon-${i.id}" class="remark-icon${hasRemark?' active':''}">✎</span>
+        <input id="rem-${i.id}" class="remark-input${hasRemark?' has-remark':''}" type="text"
+          placeholder="Remark… (e.g. half portion, urgent, best quality)"
+          value="${remVal}" oninput="onRemarkChange(${i.id},this.value)">
+      </div>
+    </div>`;
+  });
+  document.getElementById('item-list').innerHTML=html;
+  list.forEach(i=>{ const sel=document.getElementById('sel-'+i.id); if(sel&&qty[i.id]) sel.value=qty[i.id]; });
+  updateSelectedBar();
+}
+
+function renderStats(){
+  const s={pending:0,review:0,approved:0,sent:0};
+  orders.forEach(o=>{ if(s[o.status]!==undefined) s[o.status]++; });
+  document.getElementById('k-stats').innerHTML=`
+    <div class="stat"><div class="stat-n">${s.pending}</div><div class="stat-l">Pending</div></div>
+    <div class="stat"><div class="stat-n">${s.review}</div><div class="stat-l">In review</div></div>
+    <div class="stat"><div class="stat-n">${s.approved}</div><div class="stat-l">Approved</div></div>
+    <div class="stat"><div class="stat-n">${s.sent}</div><div class="stat-l">Sent</div></div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+//  SUBMIT ORDER
+// ═══════════════════════════════════════════════════
+async function submitOrder(){
+  const ordered=items.filter(i=>getEffectiveQty(i.id)).map(i=>({...i,qty:getEffectiveQty(i.id),remark:remarks[i.id]||''}));
+  if(!ordered.length){ toast('Select a quantity for at least one item'); return; }
+  const order={
+    id:        newOid(),
+    date:      fmtShort(new Date()),
+    ts:        Date.now(),
+    items:     ordered,
+    status:    'pending',
+    createdBy: currentUser||'Unknown'
+  };
+  try {
+    await db.collection('orders').add(order);
+    qty={}; customQty={}; remarks={};
+    renderItems();
+    toast('Order submitted to procurement ✓');
+  } catch(e) {
+    console.error(e);
+    toast('Error: could not save — check Firestore rules');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  PROCUREMENT
+// ═══════════════════════════════════════════════════
+function renderProc(){
+  const list=orders.filter(o=>o.status==='pending');
+  const el=document.getElementById('proc-list');
+  if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="empty">No orders awaiting review</div>'; return; }
+  el.innerHTML=list.map(o=>`
+    <div class="order-card">
+      <div class="order-head">
+        <div>
+          <strong style="font-size:15px">${o.id}</strong>
+          <span class="badge b-pending" style="margin-left:8px">Pending</span>
+          <div class="order-meta">${o.date} · ${o.items.length} items · by ${o.createdBy||'—'}</div>
+        </div>
+        <div class="act-row">
+          <button class="btn btn-red btn-sm" onclick="quickReject('${o.id}')">Reject</button>
+          <button class="btn btn-sm" onclick="openReview('${o.id}')">View</button>
+          <button class="btn btn-green btn-sm" onclick="quickApproval('${o.id}')">Send for approval ↗</button>
+        </div>
+      </div>
+      <div class="order-preview">${o.items.slice(0,5).map(i=>`${i.name} <strong>${i.qty}</strong>${i.remark?` <span class="remark-tag">${i.remark}</span>`:''}`).join(' · ')}${o.items.length>5?` · <em>+${o.items.length-5} more</em>`:''}</div>
+    </div>`).join('');
+}
+
+function openReview(id){ curOrderId=id; const o=orders.find(x=>x.id===id); document.getElementById('m-review-title').textContent=`Review ${o.id}`; document.getElementById('m-review-body').innerHTML=itemTable(o); openModal('m-review'); }
+
+async function sendForApproval(){
+  const fid=getFireId(curOrderId);
+  if(fid) await db.collection('orders').doc(fid).update({status:'review'});
+  closeModal('m-review'); toast('Sent for approval');
+}
+
+async function rejectFromModal(modal){
+  const fid=getFireId(curOrderId);
+  if(fid) await db.collection('orders').doc(fid).delete();
+  closeModal(modal); toast('Order rejected');
+}
+
+async function quickApproval(id){
+  const fid=getFireId(id);
+  if(fid) await db.collection('orders').doc(fid).update({status:'review'});
+  toast('Sent for approval');
+}
+
+async function quickReject(id){
+  const fid=getFireId(id);
+  if(fid) await db.collection('orders').doc(fid).delete();
+  toast('Rejected');
+}
+
+// ═══════════════════════════════════════════════════
+//  APPROVAL
+// ═══════════════════════════════════════════════════
+function renderAppr(){
+  const list=orders.filter(o=>['review','approved','sent'].includes(o.status));
+  const el=document.getElementById('appr-list');
+  if(!el) return;
+  if(!list.length){ el.innerHTML='<div class="empty">No orders pending approval</div>'; return; }
+  el.innerHTML=list.map(o=>{
+    const bs={review:'b-review',approved:'b-approved',sent:'b-sent'};
+    const bt={review:'In review',approved:'Approved',sent:'Sent'};
+    let actions='';
+    if(o.status==='review')        actions=`<button class="btn btn-red btn-sm" onclick="quickRejectAppr('${o.id}')">Reject</button><button class="btn btn-sm" onclick="openApprove('${o.id}')">Review</button><button class="btn btn-green btn-sm" onclick="quickApprove('${o.id}')">Approve ✓</button>`;
+    else if(o.status==='approved') actions=`<button class="btn btn-wa btn-sm" onclick="openSend('${o.id}')">Send via WhatsApp ↗</button>`;
+    else                           actions=`<span style="font-size:12px;color:var(--text3)">Sent to supplier</span>`;
+    return `<div class="order-card">
+      <div class="order-head">
+        <div>
+          <strong style="font-size:15px">${o.id}</strong>
+          <span class="badge ${bs[o.status]}" style="margin-left:8px">${bt[o.status]}</span>
+          <div class="order-meta">${o.date} · ${o.items.length} items · by ${o.createdBy||'—'}</div>
+        </div>
+        <div class="act-row">${actions}</div>
+      </div>
+      <div class="order-preview">${o.items.slice(0,5).map(i=>`${i.name} <strong>${i.qty}</strong>${i.remark?` <span class="remark-tag">${i.remark}</span>`:''}`).join(' · ')}${o.items.length>5?` · <em>+${o.items.length-5} more</em>`:''}</div>
+    </div>`;
+  }).join('');
+}
+
+function openApprove(id){ curOrderId=id; const o=orders.find(x=>x.id===id); document.getElementById('m-approve-title').textContent=`Approve ${o.id}`; document.getElementById('m-approve-body').innerHTML=itemTable(o); openModal('m-approve'); }
+
+async function approveOrder(){
+  const fid=getFireId(curOrderId);
+  if(fid) await db.collection('orders').doc(fid).update({status:'approved'});
+  closeModal('m-approve'); toast('Order approved ✓');
+}
+
+async function quickApprove(id){
+  const fid=getFireId(id);
+  if(fid) await db.collection('orders').doc(fid).update({status:'approved'});
+  toast('Approved ✓');
+}
+
+async function quickRejectAppr(id){
+  const fid=getFireId(id);
+  if(fid) await db.collection('orders').doc(fid).delete();
+  toast('Rejected');
+}
+
+// ═══════════════════════════════════════════════════
+//  ITEM TABLE (for modals)
+// ═══════════════════════════════════════════════════
+function itemTable(o){
+  return `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">${o.date} · by ${o.createdBy||'—'}</div>`+
+    o.items.map(i=>`
+      <div class="item-row">
+        <div class="item-top">
+          <span class="cat-pill">${i.cat.split(' ')[0]}</span>
+          <span class="item-name">${i.name}</span>
+          <strong style="font-size:14px;white-space:nowrap">${i.qty}</strong>
+        </div>
+        ${i.remark?`<div style="margin-top:4px;padding-left:2px;font-size:12px;font-style:italic;color:#993C1D;">✎ ${i.remark}</div>`:''}
+      </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════
+//  WHATSAPP
+// ═══════════════════════════════════════════════════
+function openSend(id){
+  curOrderId=id;
+  document.getElementById('wa-sup').innerHTML=suppliers.map(s=>`<option value="${s._fid||s.id}">${s.name}</option>`).join('');
+  updateWA();
+  openModal('m-send');
+}
+
+function updateWA(){
+  const o=orders.find(x=>x.id===curOrderId);
+  if(!o) return;
+  const supKey=document.getElementById('wa-sup').value;
+  const sup=suppliers.find(s=>(s._fid||String(s.id))===supKey)||suppliers[0];
+  if(!sup) return;
+  const bycat={};
+  o.items.forEach(i=>{ if(!bycat[i.cat]) bycat[i.cat]=[]; bycat[i.cat].push(`  • ${i.name}: ${i.qty}${i.remark?' ('+i.remark+')':''}`); });
+  const lines=Object.entries(bycat).map(([cat,its])=>`${cat}:\n${its.join('\n')}`).join('\n\n');
+  document.getElementById('wa-msg').textContent=`Hello ${sup.name},\n\nPlease find our daily order for ${o.date}:\n\n${lines}\n\nOrder ref: ${o.id}\n\nKindly confirm receipt.\nThank you — Sip Restaurant`;
+}
+
+async function doSendWA(){
+  const sup=suppliers.find(s=>(s._fid||String(s.id))===document.getElementById('wa-sup').value)||suppliers[0];
+  const msg=document.getElementById('wa-msg').textContent;
+  window.open(`https://wa.me/${sup.phone}?text=${encodeURIComponent(msg)}`,'_blank');
+  const fid=getFireId(curOrderId);
+  if(fid) await db.collection('orders').doc(fid).update({status:'sent'});
+  closeModal('m-send');
+  toast('WhatsApp opened — order marked as sent');
+}
+
+// ═══════════════════════════════════════════════════
+//  CATALOG
+// ═══════════════════════════════════════════════════
+function renderCatalog(){
+  const list=catalogQ?items.filter(i=>i.name.toLowerCase().includes(catalogQ)):items;
+  document.getElementById('cat-count').textContent=list.length+' items';
+  let html='',lastCat='';
+  [...list].sort((a,b)=>CATS.indexOf(a.cat)-CATS.indexOf(b.cat)).forEach(i=>{
+    if(i.cat!==lastCat){ html+=`<div class="divider-cat">${i.cat}</div>`; lastCat=i.cat; }
+    html+=`<div class="item-row"><div class="item-top">
+      <span class="item-name">${i.name}</span>
+      <span class="cat-pill">${i.cat.split(' ')[0]}</span>
+      <button class="btn btn-red btn-sm" onclick="removeItemCatalog(${i.id})">Remove</button>
+    </div></div>`;
+  });
+  document.getElementById('catalog-list').innerHTML=html||'<div class="empty">No items found</div>';
+}
+
+function removeItemCatalog(id){
+  if(!confirm('Remove this item?')) return;
+  items=items.filter(i=>i.id!==id);
+  renderCatalog(); renderItems(); toast('Item removed');
+}
+
+function saveItem(){
+  const name=document.getElementById('i-name').value.trim();
+  if(!name){ toast('Enter item name'); return; }
+  items.push({id:nextId++,name,cat:document.getElementById('i-cat').value});
+  document.getElementById('i-name').value='';
+  closeModal('m-item'); renderCatalog(); renderItems(); toast('Item added');
+}
+
+function toggleAddForm(){
+  const f=document.getElementById('add-item-form');
+  f.classList.toggle('show');
+  if(f.classList.contains('show')) document.getElementById('new-item-name').focus();
+}
+
+function addItemInline(){
+  const name=document.getElementById('new-item-name').value.trim();
+  if(!name){ toast('Enter item name'); return; }
+  const cat=document.getElementById('new-item-cat').value;
+  items.push({id:nextId++,name,cat});
+  document.getElementById('new-item-name').value='';
+  document.getElementById('add-item-form').classList.remove('show');
+  renderItems(); renderCatalog(); toast('Item added: '+name);
+}
+
+function removeItemFromList(id){
+  if(!confirm('Remove this item from the catalog?')) return;
+  items=items.filter(i=>i.id!==id);
+  delete qty[id]; delete customQty[id]; delete remarks[id];
+  renderItems(); renderCatalog(); updateSelectedBar();
+  toast('Item removed');
+}
+
+// ═══════════════════════════════════════════════════
+//  SUPPLIERS
+// ═══════════════════════════════════════════════════
+function renderSups(){
+  document.getElementById('sup-list').innerHTML = suppliers.length ? suppliers.map(s=>`
+    <div class="sup-row">
+      <div class="avatar">${s.name.split(' ').map(w=>w[0]).slice(0,2).join('')}</div>
+      <div style="flex:1">
+        <div style="font-size:15px;font-weight:500">${s.name}</div>
+        <div style="font-size:13px;color:var(--text2)">${s.cat} · +${s.phone}</div>
+      </div>
+      <button class="btn btn-wa btn-sm" onclick="window.open('https://wa.me/${s.phone}','_blank')">WhatsApp</button>
+      <button class="btn btn-red btn-sm" onclick="removeSup('${s._fid||s.id}')">Remove</button>
+    </div>`).join('') : '<div class="empty">No suppliers added yet</div>';
+}
+
+async function saveSup(){
+  const name=document.getElementById('s-name').value.trim();
+  const phone=document.getElementById('s-phone').value.trim().replace(/\D/g,'');
+  if(!name||!phone){ toast('Fill in name and phone'); return; }
+  try {
+    await db.collection('suppliers').add({name,phone,cat:document.getElementById('s-cat').value});
+    document.getElementById('s-name').value='';
+    document.getElementById('s-phone').value='';
+    closeModal('m-sup'); toast('Supplier added');
+  } catch(e) { toast('Error saving supplier'); }
+}
+
+async function removeSup(key){
+  try {
+    await db.collection('suppliers').doc(String(key)).delete();
+    toast('Supplier removed');
+  } catch(e){
+    suppliers=suppliers.filter(s=>String(s._fid||s.id)!==String(key));
+    renderSups(); toast('Supplier removed');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+//  UI HELPERS
+// ═══════════════════════════════════════════════════
+function updateSelectedBar(){
+  const filled=items.filter(i=>getEffectiveQty(i.id)).length;
+  const bar=document.getElementById('selected-bar');
+  if(filled>0){ bar.classList.add('show'); document.getElementById('selected-count').textContent=filled+' item'+(filled>1?'s':'')+' added to order'; }
+  else bar.classList.remove('show');
+}
+
+function onSelectChange(id,val){
+  qty[id]=val;
+  const custom=document.getElementById('custom-'+id);
+  const sel=document.getElementById('sel-'+id);
+  if(custom) custom.classList.toggle('show',val==='custom');
+  if(sel)    sel.classList.toggle('has-value',val&&val!=='');
+  updateSelectedBar();
+}
+function onCustomChange(id,val){ customQty[id]=val; updateSelectedBar(); }
+function onRemarkChange(id,val){
+  remarks[id]=val;
+  const inp=document.getElementById('rem-'+id);
+  const icon=document.getElementById('rem-icon-'+id);
+  if(inp)  inp.classList.toggle('has-remark',val.trim().length>0);
+  if(icon) icon.classList.toggle('active',val.trim().length>0);
+}
+
+function clearAll(){
+  qty={}; customQty={}; remarks={};
+  document.querySelectorAll('.qty-select').forEach(s=>{ s.value=''; s.classList.remove('has-value'); });
+  document.querySelectorAll('.qty-custom').forEach(c=>{ c.value=''; c.classList.remove('show'); });
+  document.querySelectorAll('.remark-input').forEach(r=>{ r.value=''; r.classList.remove('has-remark'); });
+  document.querySelectorAll('.remark-icon').forEach(i=>i.classList.remove('active'));
+  updateSelectedBar();
+}
+
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{ if(e.target===bg) bg.classList.remove('open'); });
+});
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2800);
+}
+</script>
+</body>
+</html>
